@@ -1,0 +1,19 @@
+info:
+  name: Metabase ArangoDB Driver
+  version: 0.1.0-SNAPSHOT
+  description: Allows Metabase to connect to ArangoDB.
+driver:
+  name: arangodb
+  display-name: ArangoDB
+  lazy-load: true
+  connection-properties:
+  - host
+  - merge:
+    - port
+    - default: 8529
+  - dbname
+  - user
+  - password
+init:
+- step: load-namespace
+  namespace: metabase.driver.arangodb
