@@ -1,0 +1,2 @@
+arango_datasets==1.2.2
+python-arango==8.1.4
