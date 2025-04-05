@@ -2,10 +2,10 @@
 
   :min-lein-version "2.5.0"
 
-  :dependencies [[com.arangodb/arangodb-java-driver "6.0.0"]]
+  :dependencies [[com.arangodb/arangodb-java-driver "7.17.1"]]
 
-  :profiles {:provided {:dependencies [[org.clojure/clojure "1.10.0"]
-                                       [metabase-core "1.0.0-SNAPSHOT"]]}
+  :profiles {:provided {:dependencies [[org.clojure/clojure "1.12.0"]
+                                       [metabase/metabase-core "0.52.17"]]}
              :uberjar {:auto-clean    true
                        :aot           :all
                        :javac-options ["-target" "1.8", "-source" "1.8"]
