@@ -1,6 +1,7 @@
 (ns metabase.driver.arangodb
   (:require [metabase.driver :as driver]
-            [toucan.db :as db]
+            [metabase.driver.arangodb.connection :as conn]
+    ;[toucan.db :as db]
             [metabase.util :as metabase-utils]
             [metabase.models.database :refer [Database]])
   (:import [java.util Map]
@@ -43,6 +44,26 @@
 
 (defmethod driver/describe-database :arangodb [_ _]
   {:tables #{}})
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                               Connection                                                       |
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;;
+;;; More connection options here:
+;;; https://docs.arangodb.com/stable/develop/drivers/java/reference-version-7/driver-setup/#configuration
+;;;
+(defmethod conn/db-params->connection :arangodb [_ params]
+  (let [{:keys [host port dbname user password]} params
+        server (.build (doto (ArangoDB$Builder.)
+                         (.host host port)
+                         (.user user)
+                         (.password password)))]
+    (.db server dbname)))
+
+(defmethod conn/shutdown-db :arangodb [_ ^ArangoDatabase connection]
+  (.shutdown (.arango connection)))
+
+;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defmethod driver/can-connect? :arangodb [_ db-details]
   (-> (db-connection db-details)
