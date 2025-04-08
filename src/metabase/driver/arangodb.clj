@@ -4,7 +4,9 @@
     ;[toucan.db :as db]
             [metabase.util :as metabase-utils]
             [metabase.models.database :refer [Database]])
-  (:import [java.util Map]
+  (:import (com.arangodb.entity ArangoDBVersion CollectionEntity)
+           (com.arangodb.model CollectionsReadOptions)
+           [java.util Map]
            [com.arangodb ArangoDB$Builder ArangoDatabase ArangoDBException]))
 
 (driver/register! :arangodb)
@@ -66,9 +68,29 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defmethod driver/can-connect? :arangodb [_ db-details]
-  (-> (db-connection db-details)
+  (-> (conn/get-db-connection :arangodb :connection-test db-details)
       (.exists)))
 
+(defmethod driver/dbms-version :arangodb [_ db-model]
+  (let [db (conn/get-db-connection :arangodb (:id db-model) (:details db-model))
+        ^ArangoDBVersion server-info (.getVersion db)]
+    {:version (.getVersion server-info)
+     :flavour (.toString (.getLicense server-info))}))
+
+(defn- collection->table-description [^CollectionEntity col]
+  {:schema nil
+   :name (.getName col)
+   :type "TABLE"})
+
+(defmethod driver/describe-database :arangodb [_ db-model]
+  (let [db (conn/get-db-connection :arangodb (:id db-model) (:details db-model))
+        filter (-> (CollectionsReadOptions.)
+                   (.excludeSystem true))
+        tables (->> (.getCollections db filter)
+                    (map collection->table-description))]
+    {:tables (set tables)}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmethod driver/execute-query :arangodb [_ query-params]
   (let [db-connection (get-connection (:database query-params))
         query-str (get-in query-params [:native :query])
