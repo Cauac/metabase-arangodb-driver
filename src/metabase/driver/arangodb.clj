@@ -59,6 +59,20 @@
                     (map collection->table-description))]
     {:tables (set tables)}))
 
+(defmethod driver/describe-table :arangodb [_ db-model table]
+  (println db-model)
+  (println table)
+  {:schema nil
+   :name (:name table)
+   :fields #{{:name "_key"
+              :database-type "key"
+              :base-type :type/Text
+              :database-position 0}
+             {:name "Content"
+              :database-type "JSON"
+              :base-type :type/JSON
+              :database-position 1}}})
+
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                               Query execution                                                  |
 ;;; +----------------------------------------------------------------------------------------------------------------+
