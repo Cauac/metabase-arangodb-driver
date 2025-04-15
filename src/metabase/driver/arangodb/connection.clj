@@ -27,10 +27,13 @@
   (-> (if (delay? db) (deref db) db)
       (:connection)))
 
-(defn get-db-connection [driver db-id db-spec]
-  (let [db (get @db-registry db-id)]
-    (if-not (and db (not (delay? db)) (same-spec? db db-spec))
-      (-> (thread-safe-db-registration driver db-id db-spec)
-          (get db-id)
-          (unwrap-connection))
-      (unwrap-connection db))))
+(defn get-db-connection
+  ([db-model]
+   (get-db-connection (:engine db-model) (:id db-model) (:details db-model)))
+  ([driver db-id db-spec]
+   (let [db (get @db-registry db-id)]
+     (if-not (and db (or (delay? db) (nil? db-spec) (same-spec? db db-spec)))
+       (-> (thread-safe-db-registration driver db-id db-spec)
+           (get db-id)
+           (unwrap-connection))
+       (unwrap-connection db)))))
