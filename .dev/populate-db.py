@@ -4,6 +4,7 @@
 from arango import ArangoClient
 from arango_datasets import Datasets
 
+# use 'host.docker.internal' instead of 'localhost' if accessing from another container
 database_host = 'http://localhost:8529'
 database_name = 'test_db'
 user_name = 'metabase'
