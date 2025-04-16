@@ -1,30 +1,15 @@
-# metabase-arangodb-driver
+# Metabase ArangoDB Driver
 
-Allows Metabase to connect to ArangoDB.
+The driver allows [Metabase](https://www.metabase.com/) to use [ArangoDB](https://arangodb.com/) as a datasource.
 
-## Build
-
-Build command: `lein uberjar`
-
-Result file location: `/targer/uberjar/arangodb.metabase-driver.jar`
+**Note:** currently only the basic level of integration is implemented (native queries)
 
 ## Installation
 
-1. build jar
-2. put driver jar file into metabase plugin folder
-3. restart metabase
+1. Download the latest driver jar from the [releases page](https://github.com/Cauac/metabase-arangodb-driver/releases).
+2. Copy the jar file into the `plugins` directory in your Metabase directory
+3. Restart Metabase
 
 ## Run locally
 
-```bash
-lein uberjar
-
-docker run -d -p 3000:3000 --name metabase metabase/metabase
-
-# find created container id with 'docker ps' command
-
-docker cp <full path to driver file> <metabase-container-id>:/plugins/arangodb.metabase-driver.jar
-
-docker restart <metabase-container-id>
-
-```
+For development or local build check the dedicated [README](https://github.com/Cauac/metabase-arangodb-driver/tree/master/.dev#readme) page.
