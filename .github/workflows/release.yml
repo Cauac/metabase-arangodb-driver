@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACT_PATH: 'target/uberjar'
+      ARTIFACT_NAME: 'arangodb.metabase-driver.jar'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@13.2
+        with:
+          lein: 2.9.1
+
+      - name: Extract Metabase Version
+        run: echo "METABASE_VERSION=$(grep 'metabase-core' project.clj | grep -Eo '[[:digit:]\.]+')" >> $GITHUB_ENV
+
+      - name: Install Metabase dependency
+        run: .dev/install-deps.sh "$METABASE_VERSION"
+
+      - name: Build driver
+        run: lein uberjar
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@2.9.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          file: '${{ env.ARTIFACT_PATH }}/${{ env.ARTIFACT_NAME }}'
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Upload resulting jar file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: '${{ env.ARTIFACT_PATH }}/${{ env.ARTIFACT_NAME }}'
