@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script starts Docker container with ArangoDB instance.
-# The database is populates with a few useful datasets.
+# The database is populated with a few useful datasets.
 # Each next run of the script simply restarts existing instance.
 # Usage: $ ./run-database.sh
 #
