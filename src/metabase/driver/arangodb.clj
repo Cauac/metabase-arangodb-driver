@@ -6,7 +6,10 @@
             [metabase.query-processor.reducible :as qp.reducible])
   (:import [com.arangodb.entity ArangoDBVersion CollectionEntity]
            [com.arangodb.model CollectionsReadOptions]
-           [com.arangodb ArangoCursor ArangoDB$Builder ArangoDatabase]))
+           [com.arangodb ArangoCursor ArangoDB$Builder ArangoDatabase]
+           [java.util Iterator Map]
+           [org.apache.commons.collections4 IteratorUtils]
+           [org.apache.commons.collections4.iterators PeekingIterator]))
 
 (driver/register! :arangodb)
 
@@ -63,27 +66,48 @@
 ;;; |                                               Query execution                                                  |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- result-metadata [first-row]
-  {:cols (mapv (fn [col-name] {:name col-name}) (.keySet first-row))})
+(defn- row->columns-list [row]
+  (if (instance? Map row)
+    (.keySet row)
+    ["value"]))
 
-(defn- reducible-rows [^ArangoCursor cursor first-row]
-  (let [has-returned-first-row? (volatile! false)
-        restored-iterator (fn []
-                            (if-not @has-returned-first-row?
-                              (do (vreset! has-returned-first-row? true)
-                                  (vals first-row))
-                              (when (.hasNext cursor)
-                                (vals (.next cursor)))))]
-    (qp.reducible/reducible-rows restored-iterator)))
+(defn- row->extraction-fn [row]
+  (if (instance? Map row)
+    vals
+    vector))
 
-(defn- reduce-results [^ArangoCursor cursor respond]
-  (if-let [first-row (when (.hasNext cursor) (.next cursor))]
-    (respond (result-metadata first-row) (reducible-rows cursor first-row))
-    (respond {} [])))
+(defn- columns->result-metadata
+  "Wraps provided columns list into data structure required for Metabase"
+  [columns-list]
+  {:cols (mapv (fn [c] {:name c}) columns-list)})
+
+(defn- result-metadata [row]
+  (-> (row->columns-list row)
+      (columns->result-metadata)))
+
+(defn ^PeekingIterator peeking-iterator
+  "Wraps the provided iterator with one-element lookahead ability"
+  [^Iterator i]
+  (IteratorUtils/peekingIterator i))
+
+(defn- reducible-rows [^Iterator iterator extraction-fn]
+  (let [row-thunk (fn []
+                    (when (.hasNext iterator)
+                      (extraction-fn (.next iterator))))]
+    (qp.reducible/reducible-rows row-thunk)))
+
+(defn- handle-results [respond ^Iterator iterator]
+  (let [iterator (peeking-iterator iterator)]
+    (if-let [first-row (.peek iterator)]
+      (respond
+        (result-metadata first-row)
+        (->> (row->extraction-fn first-row)
+             (reducible-rows iterator)))
+      (respond {} []))))
 
 (defmethod driver/execute-reducible-query :arangodb [_ query _context respond]
   (let [query-str (get-in query [:native :query])
         db-model (lib.metadata/database (qp.store/metadata-provider))
         ^ArangoDatabase db (conn/get-db-connection db-model)]
     (with-open [^ArangoCursor cursor (.query db query-str nil)]
-      (reduce-results cursor respond))))
+      (handle-results respond cursor))))
