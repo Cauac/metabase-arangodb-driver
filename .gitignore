@@ -5,4 +5,7 @@ profiles.clj
 /.lein-*
 /.nrepl-port
 .idea
+.calva
+.clj-kondo
+.vscode
 *.iml
